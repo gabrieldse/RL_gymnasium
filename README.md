@@ -12,4 +12,11 @@ pip install torch --index-url https://download.pytorch.org/whl/cpu
 pip install -r requirements.txt
 ```
 
-Compare DDPG and PPO in the same number of timesteps and computational time:
+Example:
+```sh
+python train.py --algo ppo --env MountainCarContinuous-v0
+python deploy.py --algo ddpg --env Pendulum-v1  --
+model {path_to_.zip_file} 
+python analyse.py --model {path_to_file}
+
+```
