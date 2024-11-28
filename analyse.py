@@ -7,36 +7,30 @@ import os
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Run PPO or DDPG model on a specified environment.")
-    parser.add_argument('--model', type=str, required=True, help="Path to the model file (.zip)")
+    parser = argparse.ArgumentParser(description="Run PPO or DDPG models on a specified environment.")
+    parser.add_argument('--models', type=str, nargs='+', required=True, help="Paths to the model files (.zip)")
     return parser.parse_args()
 
-
-def parse_name():
-    args = parse_args()
-    file = args.model
+def parse_name(file):
     base_name = os.path.basename(file)
     parts = base_name.split('_')
     algo = parts[0]
     parsed = parts[1].split('-')
     env = parsed[0]
     episode = parsed[2]
-    print(f"Episode = {type(env)}")
     episode = int(episode)
-    if env.lower() == "Pendulum" or env.lower() == "pendulum":
+    if env.lower() == "pendulum":
         env = "Pendulum-v1"
     else:
         env = "MountainCarContinuous-v0"
     return algo, env, episode, file
 
-
-def main():
-    algo, env, episodes, arq = parse_name()
+def run_model(file):
+    algo, env, episodes, arq = parse_name(file)
 
     # Init environment
     eval_env = gym.make(env)
     seed = 42
-    obs, info = eval_env.reset(seed=seed)
 
     if algo == "ddpg":
         model = DDPG.load(arq)
@@ -64,62 +58,67 @@ def main():
     observations.append(np.array(episode_obs))
     eval_env.close()
 
-    # Plot Rewards
+    return episode_rewards, cumulative_rewards, observations, total_reward, episodes, env
+
+def main():
+    args = parse_args()
+    models = args.models
+
     plt.figure(num=1, figsize=(10, 6))
-    plt.plot(episode_rewards, label="Récompense par épisode", color="blue")
-    plt.plot(cumulative_rewards, label="Récompense accumulé", color="orange")
-    plt.xlabel("Épisodes")
-    plt.ylabel("Récompense")
-    plt.title(f"Récompense pour {episodes} épisodes")
+    plt.figure(num=2, figsize=(12, 6))
+
+    for file in models:
+        episode_rewards, cumulative_rewards, observations, total_reward, episodes, env = run_model(file)
+
+        # Plot Rewards
+        plt.figure(1)
+        # plt.plot(episode_rewards, label=f"{file} - Episode Rewards")
+        plt.plot(cumulative_rewards, label=f"{file} - Cumulative Rewards")
+
+        # Plot Observations
+        if env == "Pendulum-v1":
+            cos_theta = [obs[0] for episode in observations for obs in episode]
+            sin_theta = [obs[1] for episode in observations for obs in episode]
+            angular_velocity = [obs[2] for episode in observations for obs in episode]
+
+            plt.figure(2)
+            plt.subplot(2, 1, 1)
+            plt.plot(np.arctan2(sin_theta, cos_theta) * 180 / np.pi, label=f"{file} - Theta Angle")
+            plt.subplot(2, 1, 2)
+            plt.plot(angular_velocity, label=f"{file} - Angular Velocity")
+        else:
+            position = [obs[0] for episode in observations for obs in episode]
+            velocity = [obs[1] for episode in observations for obs in episode]
+
+            plt.figure(2)
+            plt.subplot(2, 1, 1)
+            plt.plot(position, label=f"{file} - Position")
+            plt.subplot(2, 1, 2)
+            plt.plot(velocity, label=f"{file} - Velocity")
+
+    # Finalize and Show Plots
+    plt.figure(1)
+    plt.xlabel("Timesteps")
+    plt.ylabel("Rewards")
+    plt.title("Rewards for Multiple Models")
     plt.legend()
     plt.grid()
 
-    plt.subplots_adjust(bottom=0.2) 
-    plt.figtext(0.5, 0.05, f"Récompense final de l'entraînement : {total_reward:.2f}", ha="center", fontsize=10, wrap=True)
+    plt.figure(2)
+    plt.subplot(2, 1, 1)
+    plt.ylabel("Position / Angle")
+    plt.title("Trajectory for Multiple Models")
+    plt.legend()
+    plt.grid()
 
-    # Plot Observations
-    if env == "Pendulum-v1":
-        cos_theta = [obs[0] for episode in observations for obs in episode]
-        sin_theta = [obs[1] for episode in observations for obs in episode]
-        angular_velocity = [obs[2] for episode in observations for obs in episode]
-
-        plt.figure(num=2, figsize=(12, 6))
-        plt.subplot(2, 1, 1)
-        plt.plot(np.arctan2(sin_theta, cos_theta)*180/np.pi, label="Angle Theta", color="green")
-        plt.ylabel("Theta (degré)")
-        plt.title(f"Trajectoire du Pendulum après {episodes} épisodes")
-        plt.legend()
-        plt.grid()
-
-        plt.subplot(2, 1, 2)
-        plt.plot(angular_velocity, label="Adngular Velocity", color="red")
-        plt.xlabel("Timesteps")
-        plt.ylabel("Vitesse angulaire (m/s)")
-        plt.legend()
-        plt.grid()
-
-    else:
-        position = [obs[0] for episode in observations for obs in episode]
-        velocity = [obs[1] for episode in observations for obs in episode]
-
-        plt.figure(num=2, figsize=(12, 6))
-        plt.subplot(2, 1, 1)
-        plt.plot(position, label="Position", color="purple")
-        plt.ylabel("Position (m)")
-        plt.title(f"Trajectoire du MountainCar après {episodes} épisodes")
-        plt.grid()
-        plt.legend()
-
-        plt.subplot(2, 1, 2)
-        plt.plot(velocity, label="Vitesse", color="pink")
-        plt.xlabel("Timesteps")
-        plt.ylabel("Vitesse (m/s)")
-        plt.grid()
-        plt.legend()
+    plt.subplot(2, 1, 2)
+    plt.xlabel("Timesteps")
+    plt.ylabel("Velocity / Angular Velocity")
+    plt.legend()
+    plt.grid()
 
     plt.tight_layout()
     plt.show()
-
 
 if __name__ == "__main__":
     main()
