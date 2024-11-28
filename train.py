@@ -96,9 +96,9 @@ def main():
         model = PPO("MlpPolicy", env, verbose=1)
 
     # Set up TensorBoard logging
-    log_dir = os.path.join(args.save_path, "tensorboard")
-    new_logger = configure(log_dir, ["stdout", "tensorboard"])
-    model.set_logger(new_logger)
+    # log_dir = os.path.join(args.save_path, "tensorboard")
+    # new_logger = configure(log_dir, ["stdout", "tensorboard"])
+    # model.set_logger(new_logger)
 
     start_time = datetime.now()
     checkpoint_interval = 10  # Save model every 10 episodes

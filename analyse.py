@@ -12,38 +12,32 @@ def parse_args():
     return parser.parse_args()
 
 
-def separar_nome():
+def parse_name():
     args = parse_args()
-    arquivo = args.model
-    base_name = os.path.basename(arquivo)
-    partes = base_name.split('_')
-    algo = partes[0]
-    parsed = partes[1].split('-')
+    file = args.model
+    base_name = os.path.basename(file)
+    parts = base_name.split('_')
+    algo = parts[0]
+    parsed = parts[1].split('-')
     env = parsed[0]
-    episodio = parsed[2]
-    print(f"Episodio = {type(env)}")
-    episodio = int(episodio)
+    episode = parsed[2]
+    print(f"Episode = {type(env)}")
+    episode = int(episode)
     if env.lower() == "Pendulum" or env.lower() == "pendulum":
         env = "Pendulum-v1"
     else:
         env = "MountainCarContinuous-v0"
-    return algo, env, episodio, arquivo
+    return algo, env, episode, file
 
 
 def main():
-    algo, env, episodes, arq = separar_nome()
+    algo, env, episodes, arq = parse_name()
 
-    # print(f"Algorithm: {algo}")
-    # print(f"Environment: {env}")
-    # print(f"Episode: {episodes}")
-    # print(f"Arquivo: {arq}")
-
-    # Initialize environment
+    # Init environment
     eval_env = gym.make(env)
     seed = 42
     obs, info = eval_env.reset(seed=seed)
 
-    # Load the appropriate model
     if algo == "ddpg":
         model = DDPG.load(arq)
         TIMESTEPS_PER_EPISODE = 200
@@ -51,13 +45,11 @@ def main():
         model = PPO.load(arq)
         TIMESTEPS_PER_EPISODE = 999
 
-    # Run the environment with the model
     episode_rewards = []
     cumulative_rewards = []
     observations = []
     total_reward = 0
     episode_obs = []
-
 
     obs, _ = eval_env.reset(seed=seed)
     for _ in range(TIMESTEPS_PER_EPISODE):
@@ -81,8 +73,8 @@ def main():
     plt.title(f"Récompense pour {episodes} épisodes")
     plt.legend()
     plt.grid()
-    # Add training time text below the plot
-    plt.subplots_adjust(bottom=0.2)  # Adjust space for the text
+
+    plt.subplots_adjust(bottom=0.2) 
     plt.figtext(0.5, 0.05, f"Récompense final de l'entraînement : {total_reward:.2f}", ha="center", fontsize=10, wrap=True)
 
     # Plot Observations
